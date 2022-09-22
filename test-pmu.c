@@ -138,22 +138,29 @@ static __always_inline u64 intel_pmu_run_test(u32 idx)
 static int __init test_pmu_init(void)
 {
 	u64 cnt, min, max, (*run_test)(u32) = NULL;
-	u32 i, j, nerr = 0, npmc = 0;
+	struct x86_pmu_capability cap;
+	u32 i, j, nerr = 0;
+	u64 global_ctrl;
+
+	perf_get_x86_pmu_capability(&cap);
 
 	if (static_cpu_has(X86_FEATURE_PERFCTR_CORE)) {
-		npmc = 6;
 		run_test = &amd_pmu_run_test;
+		global_ctrl = cap.version >= 2 ? MSR_AMD64_PERF_CNTR_GLOBAL_CTL : 0;
 		pr_err("detected amd-pmu!\n");
 	} else if (static_cpu_has(X86_FEATURE_ARCH_PERFMON)) {
-		npmc = 4;
 		run_test = &intel_pmu_run_test;
+		global_ctrl = cap.version >= 2 ? MSR_CORE_PERF_GLOBAL_CTRL : 0;
 		pr_err("detected intel-pmu!\n");
 	} else {
 		pr_err("unsupported processor!\n");
 		return -EOPNOTSUPP;
 	}
 
-	for (i = 0; i < npmc; i++) {
+	if (cap.version >= 2)
+		__basic_wrmsr(global_ctrl, BIT_ULL(cap.num_counters_gp) - 1);
+
+	for (i = 0; i < cap.num_counters_gp; i++) {
 		min = U64_MAX;
 		max = 0;
 		for (j = 0, nerr = 0; j < TEST_ITERATIONS; j++) {
@@ -168,6 +175,9 @@ static int __init test_pmu_init(void)
 		pr_info("pmc %d reported %d counting errors in %d iterations, min = %llu, max = %llu\n",
 			i, nerr, TEST_ITERATIONS, min, max);
 	}
+
+	if (cap.version >= 2)
+		__basic_wrmsr(global_ctrl, 0);
 
 	return 0;
 }
