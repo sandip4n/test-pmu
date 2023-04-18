@@ -19,7 +19,7 @@
 #define PERF_CTL_UMASK(m)	((GENMASK_ULL(15, 8) & (m)) << 8)
 #define PERF_CTL_EVENT(e)	((GENMASK_ULL(7, 0) & (e)) | ((GENMASK_ULL(11, 8) & (e)) << 32))
 
-#define TEST_EXP_CTR_VAL	1000003	/* expected counter value */
+#define TEST_EXP_CTR_VAL	499999	/* expected counter value */
 #define TEST_ITERATIONS		5000	/* number of iterations per counter */
 
 static __always_inline u64 __basic_rdmsr(u32 idx)
@@ -109,7 +109,7 @@ static __always_inline u64 amd_pmu_run_test(u32 idx)
 	local_irq_disable();
 
 	amd_pmc_reset(idx);
-	amd_pmc_start(idx, 0xc0, 0x0);		/* retired instructions */
+	amd_pmc_start(idx, 0xd1, 0x00);		/* retired conditional branch instructions */
 	pmc_test_loop();
 	amd_pmc_stop(idx);
 
@@ -125,7 +125,7 @@ static __always_inline u64 intel_pmu_run_test(u32 idx)
 	local_irq_disable();
 
 	intel_pmc_reset(idx);
-	intel_pmc_start(idx, 0xc0, 0x0);	/* retired instructions */
+	intel_pmc_start(idx, 0xc4, 0x11);	/* retired conditional branch instructions */
 	pmc_test_loop();
 	intel_pmc_stop(idx);
 
