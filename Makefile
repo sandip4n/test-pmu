@@ -7,3 +7,8 @@ all:
 
 clean:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
+
+test:
+	insmod $(abspath test-pmu.ko)
+	rmmod test-pmu
+	dmesg | tail
